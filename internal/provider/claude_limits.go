@@ -13,13 +13,16 @@ import (
 
 // ClaudeLimit is one allowance window as Claude Code tells it: its kind
 // (five_hour, seven_day, seven_day_opus, seven_day_sonnet,
-// seven_day_overage_included), the share used,
+// seven_day_overage_included, overage), the share used,
 // 0–1, and when it renews, in Unix seconds (0 when not said).
 type ClaudeLimit struct {
 	Kind     string
 	Used     float64
 	ResetsAt int64
 }
+
+// claudeOverageName is the window a usage-based seat's credits go by.
+const claudeOverageName = "Extra usage"
 
 // claudeKinds are the windows Claude Code names, as the usage endpoint's
 // are kept, in that order.
@@ -35,6 +38,12 @@ var claudeKinds = []struct {
 	// usage credits past it ("Fable", "Fable 5", "Fable 5.1"), which it
 	// calls the Fable limit: the usage endpoint's weekly_scoped Fable
 	{"seven_day_overage_included", "7 days · Fable", "fable", 7 * 24 * time.Hour},
+	// the credits a usage-based seat draws on past its plan's windows:
+	// the usage endpoint's extra_usage, which Claude Code calls the
+	// overage and tells as a window of its own, its reset the billing
+	// period's. It has no span magpie knows, and the reset it names is
+	// what starts it again.
+	{"overage", claudeOverageName, "", 0},
 }
 
 // claudeHeard is how long what Claude Code said as it answered stands in

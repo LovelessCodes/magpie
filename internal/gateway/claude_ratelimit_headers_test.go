@@ -27,9 +27,11 @@ import (
 func TestClaudeSubscriptionReplySaysTheAllowance(t *testing.T) {
 	five := time.Now().Add(3 * time.Hour).Unix()
 	week := time.Now().Add(4 * 24 * time.Hour).Unix()
+	credits := time.Now().Add(10 * 24 * time.Hour).Unix()
 	user := "hud-" + strconv.FormatInt(time.Now().UnixNano(), 36) + "@example.com"
 	limits := `{"type":"rate_limit_event","rate_limit_info":{"status":"allowed","rateLimitType":"five_hour","utilization":0.42,"resetsAt":` + strconv.FormatInt(five, 10) +
-		`,"unifiedWindows":{"five_hour":{"utilization":0.42,"resetsAt":` + strconv.FormatInt(five, 10) + `},"seven_day":{"utilization":0.17,"resetsAt":` + strconv.FormatInt(week, 10) + `}}}}`
+		`,"unifiedWindows":{"five_hour":{"utilization":0.42,"resetsAt":` + strconv.FormatInt(five, 10) + `},"seven_day":{"utilization":0.17,"resetsAt":` + strconv.FormatInt(week, 10) +
+		`},"overage":{"utilization":0.84,"resetsAt":` + strconv.FormatInt(credits, 10) + `}}}}`
 	answer := []string{
 		`{"type":"stream_event","event":{"type":"message_start","message":{"id":"m1","model":"claude-sonnet-5","usage":{"input_tokens":3,"output_tokens":1}}}}`,
 		`{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"OK"}}}`,
@@ -64,10 +66,12 @@ func TestClaudeSubscriptionReplySaysTheAllowance(t *testing.T) {
 	}
 	owner := "claude\x00" + user
 	told := map[string]string{
-		"anthropic-ratelimit-unified-5h-utilization": "0.42",
-		"anthropic-ratelimit-unified-5h-reset":       strconv.FormatInt(five, 10),
-		"anthropic-ratelimit-unified-7d-utilization": "0.17",
-		"anthropic-ratelimit-unified-7d-reset":       strconv.FormatInt(week, 10),
+		"anthropic-ratelimit-unified-5h-utilization":      "0.42",
+		"anthropic-ratelimit-unified-5h-reset":            strconv.FormatInt(five, 10),
+		"anthropic-ratelimit-unified-7d-utilization":      "0.17",
+		"anthropic-ratelimit-unified-7d-reset":            strconv.FormatInt(week, 10),
+		"anthropic-ratelimit-unified-overage-utilization": "0.84",
+		"anthropic-ratelimit-unified-overage-reset":       strconv.FormatInt(credits, 10),
 	}
 	for _, stream := range []bool{true, false} {
 		t.Run("stream="+strconv.FormatBool(stream), func(t *testing.T) {

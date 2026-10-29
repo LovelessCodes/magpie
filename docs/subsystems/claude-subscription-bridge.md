@@ -739,14 +739,27 @@ Discord: Claude Desktop on Fable 5.1 got
 Claude Code tells a run's account allowance in its stream-json
 `rate_limit_event`, not as HTTP headers. The bridge keeps it
 (`provider.NoteClaudeLimits`) and says it again on the reply as the
-`anthropic-ratelimit-unified-{5h,7d,7d_oi}-{utilization,reset}` headers
-Anthropic sends (`limitHeaders`, from `provider.KeptClaudeLimits`): a share
-from 0 to 1 and a Unix-seconds reset, for each kept window that says when
-it renews. They are set when the request comes in, from what is kept, and
+`anthropic-ratelimit-unified-{5h,7d,7d_oi,overage}-{utilization,reset}`
+headers Anthropic sends (`limitHeaders`, from `provider.KeptClaudeLimits`):
+a share from 0 to 1 and a Unix-seconds reset, for each kept window that says
+when it renews. They are set when the request comes in, from what is kept, and
 again as the reply begins (`relay`'s `begin`), once the turn's own
 `rate_limit_event` is in. A run on Claude Code's own home that has moved to
 another account says nothing (`ClaudeCodeMovedOff`), as its event isn't
 kept either.
+
+A seat billed by usage has no 5-hour or weekly window: its allowance is the
+credits Claude Code calls the overage, the usage endpoint's `extra_usage`,
+which it names as a window of its own with the billing period's reset and no
+span magpie knows (`provider.claudeKinds`). It is kept like the others and
+sent as `anthropic-ratelimit-unified-overage-{utilization,reset}`. Such a
+seat's `/usage` tells no window at all — it prints only how the subscription
+is billed — so the card shows the credits Claude Code named as it answered
+rather than *"Claude Code's /usage is temporarily unavailable"*
+(`keptAnswersFor` in [`subscription_usage.go`](../../internal/provider/subscription_usage.go)),
+and their reset starts them again when it passes. A seat whose `/usage` names
+nothing and which never named a window still says the reading is
+unavailable.
 
 A Claude Code signed in to claude.ai (its sign-in field set to
 `claudeai`, `claudeSignIns` in `internal/agent/claude.go`) reads these into its status line's `rate_limits`, which

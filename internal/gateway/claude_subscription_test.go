@@ -341,6 +341,11 @@ func TestClaudeLimits(t *testing.T) {
 	if got := claudeLimits(json.RawMessage(`{"status":"allowed"}`)); len(got) != 0 {
 		t.Fatalf("nothing said: %+v", got)
 	}
+	// a usage-based seat: Claude Code names its credits as the window it
+	// has, the billing period's reset and no plan windows beside it
+	if got := claudeLimits(json.RawMessage(`{"status":"allowed_warning","resetsAt":1793491200,"rateLimitType":"overage","utilization":0.84,"overageStatus":"allowed_warning","overageResetsAt":1793491200,"isUsingOverage":false,"overageInUse":true,"surpassedThreshold":0.75}`)); !slices.Equal(got, []provider.ClaudeLimit{{Kind: "overage", Used: 0.84, ResetsAt: 1793491200}}) {
+		t.Fatalf("overage: %+v", got)
+	}
 }
 
 // A conversation switched to another model and back (KevinXC on Discord)

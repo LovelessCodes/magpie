@@ -4417,6 +4417,9 @@ var ratelimitWindows = map[string]string{
 	"five_hour":                  "5h",
 	"seven_day":                  "7d",
 	"seven_day_overage_included": "7d_oi",
+	// a usage-based seat's credits, as Anthropic names them to Claude Code
+	// (anthropic-ratelimit-unified-overage-utilization)
+	"overage": "overage",
 }
 
 // serveSubscription answers a request through an agent's own binary: a new

@@ -816,7 +816,7 @@ func claudeWindows(ctx context.Context, user string, active bool) ([]QuotaWindow
 	heard := e.ws != nil && now.Sub(e.heard) < claudeHeard
 	if !read {
 		switch {
-		case ok && e.err != nil && !(heard && !claudeUsageDenied.MatchString(e.err.Error())):
+		case ok && e.err != nil && !keptAnswersFor(e.ws, heard, e.err):
 			return []QuotaWindow{}, e.err
 		case ok && e.ws != nil:
 			return e.windows(now), nil
@@ -864,8 +864,8 @@ func claudeWindows(ctx context.Context, user string, active bool) ([]QuotaWindow
 			e = f // headers received while /usage ran are newer than e
 		}
 		c.Unlock()
-		if e.ws != nil && time.Since(e.heard) < claudeHeard && !claudeUsageDenied.MatchString(err.Error()) {
-			return e.windows(time.Now()), nil // a fresh header stands unless the account was refused
+		if keptAnswersFor(e.ws, time.Since(e.heard) < claudeHeard, err) {
+			return e.windows(time.Now()), nil // a fresh word from Claude Code stands, or a /usage that tells no windows for the seat, unless the account was refused
 		}
 		return ws, err
 	}
@@ -885,6 +885,25 @@ var (
 	errClaudeNotAsked = errors.New("not read yet: magpie reads Claude's usage by running Claude Code's /usage")
 	errClaudeSaved    = errors.New("not read yet: refresh this account's card to have Claude Code's /usage read it")
 )
+
+// keptAnswersFor says whether what is kept of an account's allowance answers
+// for a reading that told none: a fresh word from Claude Code, or, for a
+// usage-based seat, whose /usage tells only how the subscription is billed
+// (errClaudeUsageUnavailable), the credits Claude Code named as it answered,
+// which are that seat's whole allowance and stand until their reset. An
+// account refused is never answered for. What is kept carries its own reset,
+// so a window that started again reads as renewed meanwhile.
+func keptAnswersFor(kept []QuotaWindow, heard bool, err error) bool {
+	if len(kept) == 0 || claudeUsageDenied.MatchString(err.Error()) {
+		return false
+	}
+	if heard {
+		return true
+	}
+	return errors.Is(err, errClaudeUsageUnavailable) && slices.ContainsFunc(kept, func(w QuotaWindow) bool {
+		return w.Name == claudeOverageName
+	})
+}
 
 // savedRefresh says ctx is the refresh of the card of the saved Claude
 // account user, the one ask that runs Claude Code for a saved account. The
